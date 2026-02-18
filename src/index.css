@@ -1,0 +1,19 @@
+/* src/index.css */
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #3A1560; /* A dark purple fallback */
+}
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
