@@ -1,0 +1,13 @@
+type Category @table {
+  name: String!
+}
+
+type Entry @table {
+  name: String!
+  category: Category
+}
+
+type Vote @table {
+  createdAt: Timestamp!
+  entry: Entry
+}
