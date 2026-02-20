@@ -309,19 +309,6 @@ function EntryCard({ entry, onVote, hasVoted, isVotedFor, votingOpen, onImageCli
         </p>
 
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          <a
-            href={entry.link} target="_blank" rel="noopener noreferrer"
-            style={{
-              display:"inline-flex", alignItems:"center", gap:5,
-              fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.62)",
-              textDecoration:"none", padding:"8px 14px", borderRadius:9,
-              background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
-              fontFamily:FONT, transition:"all 0.2s ease", whiteSpace:"nowrap"
-            }}
-            onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.13)"}
-            onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.07)"}
-          >{"</>"} View Code</a>
-
           {votingOpen && (
             <button
               onClick={() => onVote(entry.id)}
