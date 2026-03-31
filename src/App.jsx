@@ -647,13 +647,16 @@ export default function CodeYourSelfVoting() {
     return unsubscribe;
   }, []);
 
-  // Listen to admin settings in real-time from Firestore
+  // Listen to admin settings in real-time from Firestore; create defaults if missing
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", "voting"), (snap) => {
+    const settingsRef = doc(db, "settings", "voting");
+    const unsubscribe = onSnapshot(settingsRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         if (data.isOpen !== undefined) setVotingOpen(data.isOpen);
         if (data.closeTime !== undefined) setVotingClosedAt(data.closeTime);
+      } else {
+        setDoc(settingsRef, { isOpen: true, closeTime: "" }).catch(() => {});
       }
     });
     return unsubscribe;
