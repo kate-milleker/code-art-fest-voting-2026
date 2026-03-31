@@ -60,8 +60,22 @@ const GLOBAL_CSS = `
 // ── Attract Screen ───────────────────────────────────────────────────────────
 const CODE_SYMBOLS = ["||", " ", "( )", "{ }", "for", "=>", "&&", "[ ]", " ", ":", "if", "else", "//", "</>", ";"];
 
+function shuffled(arr, seed) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    seed = (seed * 16807 + 11) % 2147483647;
+    const j = seed % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries }) {
   const allImages = entries ? [...(entries.elementary||[]), ...(entries.middle||[]), ...(entries.high||[])] : [];
+  const topImages = shuffled(allImages, 1);
+  const bottomImages = shuffled(allImages, 2);
+  const leftImages = shuffled(allImages, 3);
+  const rightImages = shuffled(allImages, 4);
   const TILE = 110;
   const GAP = 8;
   const STEP = TILE + GAP;
@@ -84,7 +98,7 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries
         {/* Top edge */}
         <div style={{ position:"absolute", top:0, left:0, right:0, height:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
           <div style={{ display:"flex", gap:GAP, animation:`scrollLeft ${allImages.length * 3}s linear infinite`, width:"max-content" }}>
-            {[...allImages, ...allImages].map((e, i) => (
+            {[...topImages, ...topImages].map((e, i) => (
               <img key={`t${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
             ))}
           </div>
@@ -92,7 +106,7 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries
         {/* Bottom edge */}
         <div style={{ position:"absolute", bottom:0, left:0, right:0, height:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
           <div style={{ display:"flex", gap:GAP, animation:`scrollRight ${allImages.length * 3}s linear infinite`, width:"max-content" }}>
-            {[...allImages, ...allImages].map((e, i) => (
+            {[...bottomImages, ...bottomImages].map((e, i) => (
               <img key={`b${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
             ))}
           </div>
@@ -100,7 +114,7 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries
         {/* Left edge */}
         <div style={{ position:"absolute", top:TILE + GAP, left:0, bottom:TILE + GAP, width:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
           <div style={{ display:"flex", flexDirection:"column", gap:GAP, animation:`scrollUp ${allImages.length * 3}s linear infinite` }}>
-            {[...allImages, ...allImages].map((e, i) => (
+            {[...leftImages, ...leftImages].map((e, i) => (
               <img key={`l${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
             ))}
           </div>
@@ -108,7 +122,7 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries
         {/* Right edge */}
         <div style={{ position:"absolute", top:TILE + GAP, right:0, bottom:TILE + GAP, width:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
           <div style={{ display:"flex", flexDirection:"column", gap:GAP, animation:`scrollDown ${allImages.length * 3}s linear infinite` }}>
-            {[...allImages, ...allImages].map((e, i) => (
+            {[...rightImages, ...rightImages].map((e, i) => (
               <img key={`r${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
             ))}
           </div>
