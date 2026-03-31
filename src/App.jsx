@@ -60,7 +60,12 @@ const GLOBAL_CSS = `
 // ── Attract Screen ───────────────────────────────────────────────────────────
 const CODE_SYMBOLS = ["||", " ", "( )", "{ }", "for", "=>", "&&", "[ ]", " ", ":", "if", "else", "//", "</>", ";"];
 
-function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt }) {
+function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries }) {
+  const allImages = entries ? [...(entries.elementary||[]), ...(entries.middle||[]), ...(entries.high||[])] : [];
+  const TILE = 110;
+  const GAP = 8;
+  const STEP = TILE + GAP;
+
   return (
     <div style={{
       position:"fixed", inset:0, zIndex:2000,
@@ -68,21 +73,54 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt }) {
       display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
       fontFamily:FONT, overflow:"hidden"
     }}>
-      {/* Floating background symbols */}
-      {CODE_SYMBOLS.map((sym, i) => (
-        <div key={i} style={{
-          position:"absolute",
-          fontSize:`${25 + (i * 11) % 30}px`,
-          color:"rgba(255,255,255,0.08)", fontFamily:"monospace", fontWeight:700,
-          left:`${6 + (i * 137) % 88}%`, top:`${9 + (i * 97 + 5) % 82}%`,
-          animation:`floatSym ${2.5 + (i * 0.6) % 2}s ease-in-out infinite`,
-          animationDelay:`${(i * 0.35) % 1.8}s`,
-          userSelect:"none", pointerEvents:"none",
-        }}>{sym}</div>
-      ))}
+      {/* Border of entry images */}
+      {allImages.length > 0 && <>
+        <style>{`
+          @keyframes scrollLeft  { from{transform:translateX(0)} to{transform:translateX(-${STEP * allImages.length}px)} }
+          @keyframes scrollRight { from{transform:translateX(-${STEP * allImages.length}px)} to{transform:translateX(0)} }
+          @keyframes scrollUp    { from{transform:translateY(0)} to{transform:translateY(-${STEP * allImages.length}px)} }
+          @keyframes scrollDown  { from{transform:translateY(-${STEP * allImages.length}px)} to{transform:translateY(0)} }
+        `}</style>
+        {/* Top edge */}
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
+          <div style={{ display:"flex", gap:GAP, animation:`scrollLeft ${allImages.length * 3}s linear infinite`, width:"max-content" }}>
+            {[...allImages, ...allImages].map((e, i) => (
+              <img key={`t${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
+            ))}
+          </div>
+        </div>
+        {/* Bottom edge */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
+          <div style={{ display:"flex", gap:GAP, animation:`scrollRight ${allImages.length * 3}s linear infinite`, width:"max-content" }}>
+            {[...allImages, ...allImages].map((e, i) => (
+              <img key={`b${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
+            ))}
+          </div>
+        </div>
+        {/* Left edge */}
+        <div style={{ position:"absolute", top:TILE + GAP, left:0, bottom:TILE + GAP, width:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:GAP, animation:`scrollUp ${allImages.length * 3}s linear infinite` }}>
+            {[...allImages, ...allImages].map((e, i) => (
+              <img key={`l${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
+            ))}
+          </div>
+        </div>
+        {/* Right edge */}
+        <div style={{ position:"absolute", top:TILE + GAP, right:0, bottom:TILE + GAP, width:TILE, overflow:"hidden", zIndex:0, opacity:0.35 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:GAP, animation:`scrollDown ${allImages.length * 3}s linear infinite` }}>
+            {[...allImages, ...allImages].map((e, i) => (
+              <img key={`r${i}`} src={`/assets/images/${e.image}`} alt="" style={{ width:TILE, height:TILE, objectFit:"cover", borderRadius:10, flexShrink:0 }} />
+            ))}
+          </div>
+        </div>
+        {/* Gradient overlays to fade edges into background */}
+        <div style={{ position:"absolute", inset:0, zIndex:0, pointerEvents:"none",
+          background:"radial-gradient(ellipse at center, rgba(59,21,96,0.95) 25%, rgba(59,21,96,0.5) 55%, transparent 75%)"
+        }}/>
+      </>}
 
       <div style={{
-        textAlign:"center", padding:"32px 24px", maxWidth:680, width:"100%",
+        textAlign:"center", padding:"32px 24px", maxWidth:1200, width:"100%",
         position:"relative", zIndex:1,
         animation:"attractIn 0.8s ease 0.1s both"
       }}>
@@ -90,16 +128,15 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt }) {
           display:"inline-flex", alignItems:"center", gap:8,
           padding:"5px 18px", borderRadius:100,
           background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.22)",
-          marginBottom:24
+          marginBottom:50
         }}>
-          <span style={{ fontSize:11, color:"rgba(255,255,255,0.85)", letterSpacing:2.5, textTransform:"uppercase", fontWeight:600 }}>
+          <span style={{ fontSize:25, color:"rgba(255,255,255,0.85)", letterSpacing:2.5, textTransform:"uppercase", fontWeight:600 }}>
             Code/Art Fest 2026
           </span>
         </div>
-
         <h1 style={{
-          fontSize:"clamp(40px, 9vw, 72px)", fontWeight:800,
-          lineHeight:0.95, margin:"0 0 10px",
+          fontSize:"clamp(120px, 9vw, 1px)", fontWeight:800,
+          lineHeight:0.95, margin:"0 0 50px",
           background:"linear-gradient(90deg, #FF3CAC, #974DF3, #2EA3F2, #974DF3, #FF3CAC)",
           backgroundSize:"300% 100%",
           WebkitBackgroundClip:"text", backgroundClip:"text",
@@ -109,12 +146,12 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt }) {
         }}>CodeYourSelf&#x2122;</h1>
 
         <p style={{
-          fontSize:"clamp(16px, 3vw, 22px)", color:"rgba(255,255,255,0.65)",
+          fontSize:"clamp(16px, 3vw, 35px)", color:"rgba(255,255,255,0.65)",
           margin:"0 0 8px", fontWeight:500
         }}>This Is Me: My Story, My Roots</p>
 
         <p style={{
-          fontSize:11, color:"rgba(255,255,255,0.35)", margin:"0 0 32px",
+          fontSize:22, color:"rgba(255,255,255,0.35)", margin:"0 0 32px",
           letterSpacing:2, textTransform:"uppercase", fontWeight:600
         }}>South Florida Regional &middot; Final Voting Round</p>
 
@@ -283,11 +320,12 @@ function EntryCard({ entry, onVote, hasVoted, isVotedFor, votingOpen, onImageCli
       borderRadius:18,
       border: isVotedFor ? `2px solid ${c1}99` : "1px solid rgba(255,255,255,0.1)",
       overflow:"hidden", transition:"all 0.35s ease",
-      boxShadow: isVotedFor ? `0 8px 36px ${c1}44` : "0 2px 12px rgba(0,0,0,0.2)"
+      boxShadow: isVotedFor ? `0 8px 36px ${c1}44` : "0 2px 12px rgba(0,0,0,0.2)",
+      display:"flex", flexDirection:"column", height:"100%"
     }}>
       <EntryImage entry={entry} onClick={onImageClick} />
 
-      <div style={{ padding:"16px 18px 18px" }}>
+      <div style={{ padding:"16px 18px 18px", display:"flex", flexDirection:"column", flex:1 }}>
         {/* Name + entry number */}
         <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8, marginBottom:4 }}>
           <h3 style={{
@@ -318,8 +356,8 @@ function EntryCard({ entry, onVote, hasVoted, isVotedFor, votingOpen, onImageCli
             {entry.description}
           </p>
         )}
-
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+        <br></br>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:"auto" }}>
           {votingOpen && (
             <button
               onClick={() => onVote(entry.id)}
@@ -737,7 +775,7 @@ export default function CodeYourSelfVoting() {
     return (
       <>
         <style>{GLOBAL_CSS}</style>
-        <AttractScreen onStart={startSession} votingOpen={votingOpen} countdown={countdown} votingClosedAt={votingClosedAt} />
+        <AttractScreen onStart={startSession} votingOpen={votingOpen} countdown={countdown} votingClosedAt={votingClosedAt} entries={ENTRIES} />
         {/* Admin access from attract screen */}
         <div style={{ position:"fixed", bottom:20, right:20, zIndex:2100, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
           {adminError && (
@@ -908,7 +946,7 @@ export default function CodeYourSelfVoting() {
       )}
 
       {/* ── Entry grid ── */}
-      <main style={{ maxWidth:960, margin:"0 auto", padding:"0 24px 60px" }}>
+      <main style={{ maxWidth:1200, margin:"0 auto", padding:"0 24px 60px" }}>
         {entries.length === 0 ? (
           <div style={{ textAlign:"center", padding:"60px 40px", color:"rgba(255,255,255,0.35)" }}>
             No entries loaded for this division.
@@ -916,7 +954,7 @@ export default function CodeYourSelfVoting() {
         ) : (
           <div className="entries-grid">
             {entries.map((entry,i) => (
-              <div key={entry.id} style={{ animation:`slideUp 0.35s ease ${i*0.04}s both` }}>
+              <div key={entry.id} style={{ animation:`slideUp 0.35s ease ${i*0.04}s both`, height:"100%" }}>
                 <EntryCard
                   entry={entry} onVote={handleVote}
                   hasVoted={!!myVotes[activeDivision]}
