@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
+import { db } from "./firebase";
+import { collection, addDoc, doc, setDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 
 const ACCENTS = [
   ["#FF6B9D","#FF8FAB"],["#FFD166","#FFC233"],["#06D6A0","#00C49A"],
@@ -302,11 +304,20 @@ function EntryCard({ entry, onVote, hasVoted, isVotedFor, votingOpen, onImageCli
         </div>
 
         <p style={{
-          fontSize:12, color:"rgba(255,255,255,0.42)", margin:"0 0 14px",
+          fontSize:12, color:"rgba(255,255,255,0.42)", margin:"0 0 8px",
           fontWeight:500, letterSpacing:0.4, fontFamily:FONT
         }}>
           {entry.grade} Grade &middot; {entry.county} County
         </p>
+
+        {entry.description && (
+          <p style={{
+            fontSize:12, color:"rgba(255,255,255,0.5)", margin:"0 0 14px",
+            lineHeight:1.5, fontFamily:FONT, fontWeight:400
+          }}>
+            {entry.description}
+          </p>
+        )}
 
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {votingOpen && (
@@ -579,16 +590,39 @@ export default function CodeYourSelfVoting() {
   useEffect(() => {
     if (countdown?.expired && votingOpen) {
       setVotingOpen(false);
-      try { localStorage.setItem("cys-voting-open", "false"); } catch {}
+      setDoc(doc(db, "settings", "voting"), { isOpen: false, closeTime: votingClosedAt }, { merge: true }).catch(() => {});
     }
   }, [countdown?.expired]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load persisted settings and entries on mount
+  // Listen to votes in real-time from Firestore
   useEffect(() => {
-    try { const r = localStorage.getItem("cys-votes");       if (r) setVotes(JSON.parse(r)); } catch {}
-    try { const r = localStorage.getItem("cys-voting-open"); if (r) setVotingOpen(JSON.parse(r)); } catch {}
-    try { const r = localStorage.getItem("cys-close-time");  if (r) setVotingClosedAt(r); } catch {}
+    const unsubscribe = onSnapshot(collection(db, "votes"), (snapshot) => {
+      const tallies = { elementary:{}, middle:{}, high:{} };
+      snapshot.forEach((d) => {
+        const { division, entryId } = d.data();
+        if (tallies[division]) {
+          tallies[division][entryId] = (tallies[division][entryId] || 0) + 1;
+        }
+      });
+      setVotes(tallies);
+    });
+    return unsubscribe;
+  }, []);
 
+  // Listen to admin settings in real-time from Firestore
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "voting"), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.isOpen !== undefined) setVotingOpen(data.isOpen);
+        if (data.closeTime !== undefined) setVotingClosedAt(data.closeTime);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Load entries on mount
+  useEffect(() => {
     Papa.parse("/entries.csv", {
       download:true, header:true, skipEmptyLines:true,
       complete: (results) => {
@@ -624,26 +658,28 @@ export default function CodeYourSelfVoting() {
   };
 
   // ── Vote helpers ─────────────────────────────────────────────────────────
-  const saveAggregateVotes = (nv) => {
-    try { localStorage.setItem("cys-votes", JSON.stringify(nv)); } catch {}
-  };
-
-  const resetVotes = () => {
-    const empty = { elementary:{}, middle:{}, high:{} };
-    setVotes(empty);
+  const resetVotes = async () => {
+    // Delete all vote documents by writing a "reset" marker;
+    // For simplicity, we use a batch-delete approach via a reset collection
+    // In practice, you may want a Cloud Function for this.
+    // Here we'll clear by reading and deleting each doc.
+    const { getDocs, deleteDoc } = await import("firebase/firestore");
+    const snapshot = await getDocs(collection(db, "votes"));
+    const deletes = [];
+    snapshot.forEach((d) => deletes.push(deleteDoc(d.ref)));
+    await Promise.all(deletes);
     setMyVotes({});
-    try { localStorage.setItem("cys-votes", JSON.stringify(empty)); } catch {}
   };
 
   const toggleVoting = () => {
     const ns = !votingOpen;
     setVotingOpen(ns);
-    try { localStorage.setItem("cys-voting-open", JSON.stringify(ns)); } catch {}
+    setDoc(doc(db, "settings", "voting"), { isOpen: ns, closeTime: votingClosedAt }, { merge: true }).catch(() => {});
   };
 
   const setClosedAt = (val) => {
     setVotingClosedAt(val);
-    try { localStorage.setItem("cys-close-time", val); } catch {}
+    setDoc(doc(db, "settings", "voting"), { isOpen: votingOpen, closeTime: val }, { merge: true }).catch(() => {});
   };
 
   const handleVote = (id) => {
@@ -653,13 +689,15 @@ export default function CodeYourSelfVoting() {
 
   const confirmVote = () => {
     const id = confirmEntry.id;
-    const nv = { ...votes };
-    if (!nv[activeDivision]) nv[activeDivision] = {};
-    nv[activeDivision][id] = (nv[activeDivision][id] || 0) + 1;
+    // Write vote to Firestore — the onSnapshot listener will update tallies automatically
+    addDoc(collection(db, "votes"), {
+      division: activeDivision,
+      entryId: id,
+      timestamp: serverTimestamp()
+    }).catch(err => console.error("Failed to save vote:", err));
+
     const nm = { ...myVotes, [activeDivision]: id };
-    setVotes(nv);
     setMyVotes(nm);
-    saveAggregateVotes(nv);
 
     const isLastVote = Object.keys(nm).length >= 3;
     setThankYouEntry({ ...confirmEntry, isLastVote });
@@ -752,6 +790,22 @@ export default function CodeYourSelfVoting() {
         .entries-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
         @media (max-width: 600px) { .entries-grid { grid-template-columns: 1fr; } }
       `}</style>
+
+      {/* ── Home button ── */}
+      <button onClick={endSession} style={{
+        position:"fixed", top:16, left:16, zIndex:900,
+        background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.18)",
+        borderRadius:12, padding:"8px 14px", cursor:"pointer",
+        display:"flex", alignItems:"center", gap:6,
+        backdropFilter:"blur(8px)", transition:"all 0.2s ease",
+        fontFamily:FONT
+      }}
+        onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+        onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+      >
+        <span style={{ fontSize:16, color:"white", lineHeight:1 }}>&#x2302;</span>
+        <span style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.75)", letterSpacing:0.5 }}>Home</span>
+      </button>
 
       {/* ── Header ── */}
       <header style={{ padding:"28px 24px 0", maxWidth:960, margin:"0 auto", textAlign:"center" }}>
