@@ -135,7 +135,7 @@ function AttractScreen({ onStart, votingOpen, countdown, votingClosedAt, entries
           </span>
         </div>
         <h1 style={{
-          fontSize:"clamp(40px, 9vw, 120px)", fontWeight:800,
+          fontSize:"clamp(20px, 9vw, 120px)", fontWeight:800,
           lineHeight:0.95, margin:"0 0 50px",
           background:"linear-gradient(90deg, #FF3CAC, #974DF3, #2EA3F2, #974DF3, #FF3CAC)",
           backgroundSize:"300% 100%",
